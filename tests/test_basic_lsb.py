@@ -45,7 +45,7 @@ def test_capacity_overflow(tmp_path):
     tiny_path = tmp_path / "tiny.png"
     Image.new("RGB", (2, 2), color=(0, 0, 0)).save(tiny_path)  # 12 bits capacity
     message = "Too big for 12 bits"
-    with pytest.raises(ValueError, match="Message too large"):
+    with pytest.raises(ValueError, match="Carrier capacity exceeded"):
         encode_text(tiny_path, message, tmp_path / "out.png")
 
 

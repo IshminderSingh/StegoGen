@@ -5,6 +5,7 @@ from PIL import Image
 import numpy as np
 
 from stegogen.core.payload import serialize_payload, pack_file_data
+from stegogen.core.capacity import assess_capacity
 from stegogen.crypto.encryption import encrypt_bytes
 from stegogen.utils.image_utils import load_image_as_rgb, save_stego_image
 
@@ -26,7 +27,7 @@ def encode_bytes_into_array(pixel_array: np.ndarray, payload_bytes: bytes) -> np
 
     if len(total_bits) > available_bits:
         raise ValueError(
-            f"Message too large: requires {len(total_bits)} bits, "
+            f"Payload exceeds carrier capacity: requires {len(total_bits)} bits, "
             f"carrier only has capacity for {available_bits} bits."
         )
 
@@ -50,12 +51,17 @@ def encode_text(
     if cover_path.resolve() == output_path.resolve():
         raise ValueError("Cover image and output image paths must not be identical.")
 
-    raw_data = message.encode("utf-8")
-    is_encrypted = False
+    is_encrypted = bool(password)
+    report = assess_capacity(cover_path, message, is_encrypted=is_encrypted, is_file=False)
+    if not report.fits:
+        raise ValueError(
+            f"Carrier capacity exceeded: Image holds {report.total_carrier_bytes:,} bytes, "
+            f"but payload + metadata requires {report.total_required_bytes:,} bytes."
+        )
 
-    if password:
+    raw_data = message.encode("utf-8")
+    if is_encrypted and password:
         raw_data = encrypt_bytes(raw_data, password)
-        is_encrypted = True
 
     structured_payload = serialize_payload(raw_data, is_encrypted=is_encrypted, is_file=False)
 
@@ -85,13 +91,19 @@ def encode_file(
     if cover_path.resolve() == output_path.resolve():
         raise ValueError("Cover image and output image paths must not be identical.")
 
+    is_encrypted = bool(password)
+    report = assess_capacity(cover_path, secret_file_path, is_encrypted=is_encrypted, is_file=True)
+    if not report.fits:
+        raise ValueError(
+            f"Carrier capacity exceeded: Image holds {report.total_carrier_bytes:,} bytes, "
+            f"but file + metadata requires {report.total_required_bytes:,} bytes."
+        )
+
     file_bytes = secret_file_path.read_bytes()
     packaged_data = pack_file_data(secret_file_path.name, file_bytes)
 
-    is_encrypted = False
-    if password:
+    if is_encrypted and password:
         packaged_data = encrypt_bytes(packaged_data, password)
-        is_encrypted = True
 
     structured_payload = serialize_payload(packaged_data, is_encrypted=is_encrypted, is_file=True)
 
