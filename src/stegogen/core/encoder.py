@@ -1,116 +1,87 @@
-﻿"""Spatial Least Significant Bit (LSB) encoder."""
+﻿"""Advanced PRNG-Scattered LSB Encoder with AES-GCM & zlib Compression."""
 
-from pathlib import Path
-from PIL import Image
+import os
+import struct
+import hashlib
+import tempfile
+import gc
 import numpy as np
+from PIL import Image
 
-from stegogen.core.payload import serialize_payload, pack_file_data
-from stegogen.core.capacity import assess_capacity
-from stegogen.crypto.encryption import encrypt_bytes
-from stegogen.utils.image_utils import load_image_as_rgb, save_stego_image
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
 
+from stegogen.core.advanced_payload import pack_payload
 
-def bytes_to_bits(data: bytes) -> list[int]:
-    """Convert raw bytes into a list of integer bits (0 or 1)."""
-    bits: list[int] = []
-    for byte in data:
-        for i in range(7, -1, -1):
-            bits.append((byte >> i) & 1)
-    return bits
+DEFAULT_SEED = "StegoGen_V1_3_Unencrypted"
 
+def _derive_key(password: str, salt: bytes) -> bytes:
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    return kdf.derive(password.encode())
 
-def encode_bytes_into_array(pixel_array: np.ndarray, payload_bytes: bytes) -> np.ndarray:
-    """Embed serialized payload bytes into an RGB numpy array using 1-bit LSB."""
-    total_bits = bytes_to_bits(payload_bytes)
-    flat_pixels = pixel_array.flatten()
-    available_bits = flat_pixels.size
+def _get_prng_indices(seed_string: str, max_val: int) -> np.ndarray:
+    """Generates a reproducible, shuffled array of pixel coordinates based on the password."""
+    seed_int = int(hashlib.sha256(seed_string.encode()).hexdigest(), 16) % (2**32)
+    rng = np.random.default_rng(seed_int)
+    indices = np.arange(max_val)
+    rng.shuffle(indices)
+    return indices
 
-    if len(total_bits) > available_bits:
-        raise ValueError(
-            f"Payload exceeds carrier capacity: requires {len(total_bits)} bits, "
-            f"carrier only has capacity for {available_bits} bits."
-        )
+def _bytes_to_bits(data: bytes) -> np.ndarray:
+    return np.unpackbits(np.frombuffer(data, dtype=np.uint8))
 
-    modified_pixels = flat_pixels.copy()
-    for idx, bit in enumerate(total_bits):
-        modified_pixels[idx] = (int(modified_pixels[idx]) & 0xFE) | bit
+def encode_file(cover_path: str, file_path: str, out_path: str, password: str = None):
+    """Compresses, encrypts, and scatters an arbitrary file into an image."""
+    packed_bytes = pack_payload(file_path)
+    
+    if password:
+        salt = os.urandom(16)
+        nonce = os.urandom(12)
+        key = _derive_key(password, salt)
+        aesgcm = AESGCM(key)
+        encrypted_payload = aesgcm.encrypt(nonce, packed_bytes, None)
+        final_payload = salt + nonce + encrypted_payload
+        seed = password
+    else:
+        final_payload = packed_bytes
+        seed = DEFAULT_SEED
+        
+    payload_bits = _bytes_to_bits(final_payload)
+    
+    # Prepend a 32-bit integer indicating how many bits follow
+    length_bits = _bytes_to_bits(struct.pack(">I", len(payload_bits)))
+    full_bits = np.concatenate((length_bits, payload_bits))
+    
+    img = Image.open(cover_path).convert("RGB")
+    img_arr = np.array(img)
+    flat_img = img_arr.flatten()
+    max_capacity = len(flat_img)
+    
+    if len(full_bits) > max_capacity:
+        raise ValueError(f"Payload too large! Need {len(full_bits)} bits, carrier only holds {max_capacity} bits.")
+        
+    # Generate PRNG sequence and select exact number of coordinates needed
+    indices = _get_prng_indices(seed, max_capacity)
+    target_indices = indices[:len(full_bits)]
+    
+    # Perform LSB substitution ONLY on the scattered coordinates
+    flat_img[target_indices] = (flat_img[target_indices] & 254) | full_bits
+    
+    stego_img = flat_img.reshape(img_arr.shape)
+    Image.fromarray(stego_img).save(out_path, format="PNG")
+    
+    # Memory cleanup
+    del img_arr, flat_img, payload_bits, full_bits, indices, target_indices
+    gc.collect()
 
-    return modified_pixels.reshape(pixel_array.shape)
-
-
-def encode_text(
-    cover_image_path: str | Path,
-    message: str,
-    output_image_path: str | Path,
-    password: str | None = None,
-) -> Path:
-    """Embed text (optionally encrypted) into a cover image and save stego PNG."""
-    cover_path = Path(cover_image_path)
-    output_path = Path(output_image_path)
-
-    if cover_path.resolve() == output_path.resolve():
-        raise ValueError("Cover image and output image paths must not be identical.")
-
-    is_encrypted = bool(password)
-    report = assess_capacity(cover_path, message, is_encrypted=is_encrypted, is_file=False)
-    if not report.fits:
-        raise ValueError(
-            f"Carrier capacity exceeded: Image holds {report.total_carrier_bytes:,} bytes, "
-            f"but payload + metadata requires {report.total_required_bytes:,} bytes."
-        )
-
-    raw_data = message.encode("utf-8")
-    if is_encrypted and password:
-        raw_data = encrypt_bytes(raw_data, password)
-
-    structured_payload = serialize_payload(raw_data, is_encrypted=is_encrypted, is_file=False)
-
-    image = load_image_as_rgb(cover_path)
-    pixel_array = np.array(image, dtype=np.uint8)
-
-    stego_array = encode_bytes_into_array(pixel_array, structured_payload)
-    stego_image = Image.fromarray(stego_array, mode="RGB")
-
-    return save_stego_image(stego_image, output_path)
-
-
-def encode_file(
-    cover_image_path: str | Path,
-    file_to_hide_path: str | Path,
-    output_image_path: str | Path,
-    password: str | None = None,
-) -> Path:
-    """Embed an arbitrary binary file into a cover image and save stego PNG."""
-    cover_path = Path(cover_image_path)
-    secret_file_path = Path(file_to_hide_path)
-    output_path = Path(output_image_path)
-
-    if not secret_file_path.is_file():
-        raise FileNotFoundError(f"File to hide not found: {secret_file_path}")
-
-    if cover_path.resolve() == output_path.resolve():
-        raise ValueError("Cover image and output image paths must not be identical.")
-
-    is_encrypted = bool(password)
-    report = assess_capacity(cover_path, secret_file_path, is_encrypted=is_encrypted, is_file=True)
-    if not report.fits:
-        raise ValueError(
-            f"Carrier capacity exceeded: Image holds {report.total_carrier_bytes:,} bytes, "
-            f"but file + metadata requires {report.total_required_bytes:,} bytes."
-        )
-
-    file_bytes = secret_file_path.read_bytes()
-    packaged_data = pack_file_data(secret_file_path.name, file_bytes)
-
-    if is_encrypted and password:
-        packaged_data = encrypt_bytes(packaged_data, password)
-
-    structured_payload = serialize_payload(packaged_data, is_encrypted=is_encrypted, is_file=True)
-
-    image = load_image_as_rgb(cover_path)
-    pixel_array = np.array(image, dtype=np.uint8)
-
-    stego_array = encode_bytes_into_array(pixel_array, structured_payload)
-    stego_image = Image.fromarray(stego_array, mode="RGB")
-
-    return save_stego_image(stego_image, output_path)
+def encode_text(cover_path: str, msg: str, out_path: str, password: str = None):
+    """Wrapper to keep the UI functional: saves text to a temp file, then embeds it."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+        tmp.write(msg.encode('utf-8'))
+        tmp_path = tmp.name
+        
+    try:
+        encode_file(cover_path, tmp_path, out_path, password)
+    finally:
+        os.remove(tmp_path)
