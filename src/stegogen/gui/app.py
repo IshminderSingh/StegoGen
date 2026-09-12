@@ -39,8 +39,8 @@ class StegoGenSimpleApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("StegoGen Analytics Studio")
-        self.geometry("1040x740")
-        self.minsize(920, 640)
+        self.geometry("1060x750")
+        self.minsize(920, 650)
         self.configure(fg_color=CANVAS_BG)
 
         # Hook clean exit handler to silence Tkinter "after" script errors
@@ -64,7 +64,7 @@ class StegoGenSimpleApp(ctk.CTk):
         self._show_tab("hide")
 
     def _on_closing(self):
-        """Cleanly releases Matplotlib figures and shuts down Tk event queues."""
+        """Cleanly releases Matplotlib figures and terminates event loops."""
         try:
             plt.close("all")
         except Exception:
@@ -270,27 +270,28 @@ class StegoGenSimpleApp(ctk.CTk):
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=16, pady=14)
 
-        # Top Control Bar
+        # Top Control Row
         top_ctrl = ctk.CTkFrame(inner, fg_color="transparent")
         top_ctrl.pack(fill="x", pady=(0, 10))
 
-        ctk.CTkButton(top_ctrl, text="Original Photo...", width=120, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_cover).pack(side="left", padx=(0, 6))
-        self.lbl_qual_cover = ctk.CTkLabel(top_ctrl, text="No original", text_color=TEXT_SUB, width=130, anchor="w")
-        self.lbl_qual_cover.pack(side="left", padx=(0, 10))
+        ctk.CTkButton(top_ctrl, text="Original Photo...", width=115, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_cover).pack(side="left", padx=(0, 6))
+        self.lbl_qual_cover = ctk.CTkLabel(top_ctrl, text="No original", text_color=TEXT_SUB, width=120, anchor="w")
+        self.lbl_qual_cover.pack(side="left", padx=(0, 8))
 
-        ctk.CTkButton(top_ctrl, text="Protected Stego...", width=120, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_stego).pack(side="left", padx=(0, 6))
-        self.lbl_qual_stego = ctk.CTkLabel(top_ctrl, text="No protected photo", text_color=TEXT_SUB, width=130, anchor="w")
-        self.lbl_qual_stego.pack(side="left", padx=(0, 10))
+        ctk.CTkButton(top_ctrl, text="Protected Stego...", width=115, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_stego).pack(side="left", padx=(0, 6))
+        self.lbl_qual_stego = ctk.CTkLabel(top_ctrl, text="No protected photo", text_color=TEXT_SUB, width=120, anchor="w")
+        self.lbl_qual_stego.pack(side="left", padx=(0, 8))
 
-        ctk.CTkButton(top_ctrl, text="Run Analytics", width=120, height=30, corner_radius=8, fg_color=ACCENT_BLUE, hover_color=ACCENT_HOVER, font=ctk.CTkFont(weight="bold"), command=self._do_check).pack(side="right")
-        ctk.CTkButton(top_ctrl, text="Residue Heatmap", width=130, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._show_heatmap).pack(side="right", padx=(0, 8))
+        ctk.CTkButton(top_ctrl, text="Run Analytics", width=110, height=30, corner_radius=8, fg_color=ACCENT_BLUE, hover_color=ACCENT_HOVER, font=ctk.CTkFont(weight="bold"), command=self._do_check).pack(side="right")
+        ctk.CTkButton(top_ctrl, text="Residue Heatmap", width=120, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._show_heatmap).pack(side="right", padx=(0, 6))
+        ctk.CTkButton(top_ctrl, text="What do these mean?", width=140, height=30, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", font=ctk.CTkFont(size=12), command=self._show_explanation_dialog).pack(side="right", padx=(0, 6))
 
-        # Main Workspace
+        # Split Dashboard
         dash = ctk.CTkFrame(inner, fg_color="transparent")
         dash.pack(fill="both", expand=True)
 
         # Left Gauges Column
-        left_panel = ctk.CTkFrame(dash, fg_color=WELL_BG, corner_radius=10, border_width=1, border_color=BORDER_COLOR, width=300)
+        left_panel = ctk.CTkFrame(dash, fg_color=WELL_BG, corner_radius=10, border_width=1, border_color=BORDER_COLOR, width=290)
         left_panel.pack(side="left", fill="both", padx=(0, 10), pady=2)
         left_panel.pack_propagate(False)
 
@@ -317,7 +318,7 @@ class StegoGenSimpleApp(ctk.CTk):
         self.bar_pov.set(0.0)
         self.bar_pov.pack(fill="x", padx=14, pady=(0, 12))
 
-        # Status Verdict Card
+        # Status Verdict Badge
         self.badge_box = ctk.CTkFrame(left_panel, fg_color="#212124", corner_radius=8, border_width=1, border_color=BORDER_COLOR)
         self.badge_box.pack(fill="x", padx=14, pady=(4, 10), ipady=6)
 
@@ -393,6 +394,85 @@ class StegoGenSimpleApp(ctk.CTk):
         self.chart_canvas = FigureCanvasTkAgg(fig, master=self.chart_container)
         self.chart_canvas.draw()
         self.chart_canvas.get_tk_widget().pack(fill="both", expand=True, padx=6, pady=6)
+
+    # -------------------------------------------------------------
+    # NON-TECHNICAL EXPLANATION DIALOG
+    # -------------------------------------------------------------
+    def _show_explanation_dialog(self):
+        """Displays a plain-English guide explaining the metrics and graphs."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Understanding Your Image Quality & Graphs")
+        dialog.geometry("580x470")
+        dialog.minsize(500, 380)
+        dialog.configure(fg_color=CANVAS_BG)
+        dialog.grab_set()
+
+        container = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            container,
+            text="How to Read the Results",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=TEXT_TITLE
+        ).pack(anchor="w", pady=(0, 10))
+
+        items = [
+            (
+                "PSNR (Signal Clarity)",
+                "Measures visual purity. Higher is better. A score above 40 dB means your eye cannot spot any visual difference between the two pictures."
+            ),
+            (
+                "SSIM (Visual Similarity)",
+                "Scores how identical the structures look on a scale from 0.0 to 1.0. A score near 1.000 means lines, edges, textures, and lighting remained intact."
+            ),
+            (
+                "Statistical Suspicion",
+                "Evaluates whether an automated detector would guess that data is hidden inside. Below 20% is clean and safe; higher values indicate unusual patterns."
+            ),
+            (
+                "Left Chart: Channel Distortion (MSE)",
+                "Shows how much each individual color (Red, Green, Blue) was altered. Tiny bars mean virtually zero disturbance to that color channel."
+            ),
+            (
+                "Right Chart: Brightness Overlay",
+                "Compares the brightness profile of the original photo (gray dashed) with the stego photo (blue solid). Perfect overlap proves the hidden data caused no color or lighting shift."
+            ),
+            (
+                "Residue Heatmap",
+                "An amplified difference map magnified 150 times to reveal altered bits. Black areas mean the pixels were left untouched."
+            )
+        ]
+
+        for title, desc in items:
+            card = ctk.CTkFrame(container, fg_color=CARD_BG, corner_radius=8, border_width=1, border_color=BORDER_COLOR)
+            card.pack(fill="x", pady=(0, 8))
+
+            ctk.CTkLabel(
+                card,
+                text=title,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color=ACCENT_BLUE
+            ).pack(anchor="w", padx=12, pady=(8, 2))
+
+            ctk.CTkLabel(
+                card,
+                text=desc,
+                font=ctk.CTkFont(size=11),
+                text_color=TEXT_SUB,
+                wraplength=500,
+                justify="left"
+            ).pack(anchor="w", padx=12, pady=(0, 8))
+
+        ctk.CTkButton(
+            container,
+            text="Got It",
+            height=32,
+            corner_radius=8,
+            fg_color=ACCENT_BLUE,
+            hover_color=ACCENT_HOVER,
+            command=dialog.destroy
+        ).pack(fill="x", pady=(10, 0))
 
     # -------------------------------------------------------------
     # EVENT HANDLERS
