@@ -5,24 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-09-12
+### Added
+- Hardening test suite in `tests/test_hardening.py` covering odd dimensions, non-square images, RGBA alpha flattening, and grayscale conversion.
+- Zero-byte binary file roundtrip preservation.
+- Strict input validation raising `FileNotFoundError` on nonexistent carrier or secret files.
+- Full 37-test suite passing cleanly.
+
 ## [0.7.0] - 2026-09-12
 ### Added
 - Complete Tkinter graphical user interface in `gui/app.py`.
-- Tabbed view for **Encode** and **Decode** workflows.
-- Live image thumbnail preview and dynamic capacity calculations.
-- File vs text input toggle with non-executable extraction guards.
-- Unit tests for GUI lifecycle in `tests/test_gui.py`.
+- Quality analysis module (`utils/analysis.py`) computing MSE, PSNR, and SSIM.
 
 ## [0.6.0] - 2026-09-12
 ### Added
 - Capacity and overhead analysis system in `core/capacity.py`.
-- Automated detection of header framing and AES-GCM overhead.
-- Pre-flight capacity checks in `encode_text` and `encode_file`.
 
 ## [0.5.0] - 2026-09-12
 ### Added
-- Arbitrary binary file packaging protocol (`pack_file_data`, `unpack_file_data`) in `core/payload.py`.
-- Binary file embedding engine `encode_file` and extractor `decode_file`.
+- Arbitrary binary file packaging protocol in `core/payload.py`.
 
 ## [0.4.0] - 2026-09-12
 ### Added
