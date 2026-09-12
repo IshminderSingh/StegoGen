@@ -1,12 +1,12 @@
-"""Application entrypoint for StegoGen."""
+﻿"""Application entrypoint for StegoGen."""
 
 import sys
+from stegogen.gui.app import launch_gui
 
 
 def main() -> int:
-    """Bootstrap entrypoint."""
-    print("StegoGen v0.1.0: Secure Image Steganography Generator")
-    print("Foundation verified. Ready for Milestone 1.")
+    """Bootstrap entrypoint launching the desktop GUI."""
+    launch_gui()
     return 0
 
 
