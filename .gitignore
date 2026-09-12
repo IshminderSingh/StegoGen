@@ -1,0 +1,38 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Secrets and environment configs
+.env
+.env.*
+*.key
+*.pem
+
+# IDE & Editor artifacts
+.vscode/
+.idea/
+*.swp
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build & distribution
+dist/
+build/
+*.egg-info/
+
+# Project generated artifacts (keep .gitkeep)
+output/*
+!output/.gitkeep
+examples/*
+!examples/.gitkeep
+*.log
