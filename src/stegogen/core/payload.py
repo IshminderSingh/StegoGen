@@ -1,6 +1,7 @@
-"""Structured payload serialization, framing, and integrity verification."""
+﻿"""Structured payload serialization, framing, and integrity verification."""
 
 from dataclasses import dataclass
+from pathlib import Path
 import zlib
 
 MAGIC_BYTES = b"STGO"
@@ -23,21 +24,52 @@ class StegoPayload:
     version: int = CURRENT_VERSION
 
 
+@dataclass(frozen=True)
+class ExtractedFile:
+    """Structured representation of an extracted embedded file."""
+
+    filename: str
+    file_bytes: bytes
+
+
+def pack_file_data(filename: str, file_bytes: bytes) -> bytes:
+    """Pack a filename and file contents into a binary container.
+
+    Wire layout:
+      [0:2]   Filename length in bytes (uint16 big-endian)
+      [2:2+N] Filename encoded in UTF-8
+      [2+N:]  Raw file content bytes
+    """
+    clean_name = Path(filename).name  # Discard directory paths for security
+    name_bytes = clean_name.encode("utf-8")
+    if len(name_bytes) > 65535:
+        raise ValueError("Filename is too long to encode (max 65,535 bytes).")
+
+    return len(name_bytes).to_bytes(2, byteorder="big") + name_bytes + file_bytes
+
+
+def unpack_file_data(raw_data: bytes) -> ExtractedFile:
+    """Unpack a filename and raw bytes from an extracted file container."""
+    if len(raw_data) < 2:
+        raise ValueError("Corrupted file payload: header missing.")
+
+    name_len = int.from_bytes(raw_data[:2], byteorder="big")
+    if len(raw_data) < 2 + name_len:
+        raise ValueError("Corrupted file payload: filename field truncated.")
+
+    filename = raw_data[2 : 2 + name_len].decode("utf-8", errors="replace")
+    clean_name = Path(filename).name
+    file_bytes = raw_data[2 + name_len :]
+
+    return ExtractedFile(filename=clean_name, file_bytes=file_bytes)
+
+
 def serialize_payload(
     data: bytes,
     is_encrypted: bool = False,
     is_file: bool = False,
 ) -> bytes:
-    """Pack raw bytes into the structured binary format with integrity checksum.
-
-    Layout:
-      [0:4]   Magic Header (b'STGO')
-      [4:5]   Protocol Version (uint8)
-      [5:6]   Flags (uint8: bit0=encrypted, bit1=file)
-      [6:10]  Payload Length (uint32 big-endian)
-      [10:14] CRC32 Checksum of data (uint32 big-endian)
-      [14:]   Data bytes
-    """
+    """Pack raw bytes into the structured binary format with integrity checksum."""
     flags = 0
     if is_encrypted:
         flags |= FLAG_ENCRYPTED
@@ -58,12 +90,7 @@ def serialize_payload(
 
 
 def parse_payload(raw_bytes: bytes) -> StegoPayload:
-    """Validate and unpack binary data into a StegoPayload instance.
-
-    Raises:
-        ValueError: If magic bytes mismatch, version is unsupported,
-                    length is incomplete, or CRC32 fails.
-    """
+    """Validate and unpack binary data into a StegoPayload instance."""
     if len(raw_bytes) < HEADER_SIZE:
         raise ValueError("Data too short to contain a valid StegoGen header.")
 

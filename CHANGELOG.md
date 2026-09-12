@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-12
+### Added
+- Arbitrary binary file packaging protocol (`pack_file_data`, `unpack_file_data`) in `core/payload.py`.
+- Binary file embedding engine `encode_file` in `core/encoder.py`.
+- Safe file reconstruction and output writing `decode_file` in `core/decoder.py` (non-executable extraction).
+- Unit tests covering plaintext files, simulated binary PDFs, encrypted file hiding, and separation checks in `tests/test_files.py`.
+
 ## [0.4.0] - 2026-09-12
 ### Added
 - Authenticated AES-256-GCM encryption engine with random salt and IV generation in `crypto/encryption.py`.

@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 
-from stegogen.core.payload import serialize_payload
+from stegogen.core.payload import serialize_payload, pack_file_data
 from stegogen.crypto.encryption import encrypt_bytes
 from stegogen.utils.image_utils import load_image_as_rgb, save_stego_image
 
@@ -58,6 +58,42 @@ def encode_text(
         is_encrypted = True
 
     structured_payload = serialize_payload(raw_data, is_encrypted=is_encrypted, is_file=False)
+
+    image = load_image_as_rgb(cover_path)
+    pixel_array = np.array(image, dtype=np.uint8)
+
+    stego_array = encode_bytes_into_array(pixel_array, structured_payload)
+    stego_image = Image.fromarray(stego_array, mode="RGB")
+
+    return save_stego_image(stego_image, output_path)
+
+
+def encode_file(
+    cover_image_path: str | Path,
+    file_to_hide_path: str | Path,
+    output_image_path: str | Path,
+    password: str | None = None,
+) -> Path:
+    """Embed an arbitrary binary file into a cover image and save stego PNG."""
+    cover_path = Path(cover_image_path)
+    secret_file_path = Path(file_to_hide_path)
+    output_path = Path(output_image_path)
+
+    if not secret_file_path.is_file():
+        raise FileNotFoundError(f"File to hide not found: {secret_file_path}")
+
+    if cover_path.resolve() == output_path.resolve():
+        raise ValueError("Cover image and output image paths must not be identical.")
+
+    file_bytes = secret_file_path.read_bytes()
+    packaged_data = pack_file_data(secret_file_path.name, file_bytes)
+
+    is_encrypted = False
+    if password:
+        packaged_data = encrypt_bytes(packaged_data, password)
+        is_encrypted = True
+
+    structured_payload = serialize_payload(packaged_data, is_encrypted=is_encrypted, is_file=True)
 
     image = load_image_as_rgb(cover_path)
     pixel_array = np.array(image, dtype=np.uint8)
