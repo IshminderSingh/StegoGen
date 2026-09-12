@@ -10,11 +10,11 @@ from stegogen.utils.analysis import compare_images
 
 ctk.set_appearance_mode("Dark")
 
-# Minimalist Apple Dark Theme
-CANVAS_BG = "#161618"          # Smooth graphite
-CARD_BG = "#212124"            # Clean elevated card
-WELL_BG = "#19191b"            # Subtle input well
-ACCENT_BLUE = "#0a84ff"        # Apple System Blue
+# Minimalist Apple Dark Palette
+CANVAS_BG = "#161618"
+CARD_BG = "#212124"
+WELL_BG = "#19191b"
+ACCENT_BLUE = "#0a84ff"
 ACCENT_HOVER = "#0071e3"
 TEXT_TITLE = "#f5f5f7"
 TEXT_SUB = "#86868b"
@@ -25,17 +25,15 @@ class StegoGenSimpleApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("StegoGen")
-        self.geometry("820x620")
+        self.geometry("860x640")
         self.minsize(760, 560)
         self.configure(fg_color=CANVAS_BG)
 
         self.cover_path = None
         self.stego_path = None
 
-        # Top Bar: Segmented Switcher
         self._build_top_switcher()
 
-        # Content Area
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True, padx=32, pady=(10, 24))
 
@@ -48,7 +46,7 @@ class StegoGenSimpleApp(ctk.CTk):
         self._show_tab("hide")
 
     # -------------------------------------------------------------
-    # TOP PILL SWITCHER
+    # TOP SEGMENTED SWITCHER
     # -------------------------------------------------------------
     def _build_top_switcher(self):
         header = ctk.CTkFrame(self, fg_color="transparent")
@@ -61,7 +59,6 @@ class StegoGenSimpleApp(ctk.CTk):
             text_color=TEXT_TITLE
         ).pack(side="left")
 
-        # Apple-style segmented control
         self.seg_tab = ctk.CTkSegmentedButton(
             header,
             values=["Hide Message", "Read Message", "Check Quality"],
@@ -93,13 +90,11 @@ class StegoGenSimpleApp(ctk.CTk):
                 frame.pack_forget()
 
     # -------------------------------------------------------------
-    # TAB 1: HIDE MESSAGE (SIMPLE)
+    # TAB 1: HIDE MESSAGE
     # -------------------------------------------------------------
     def _view_hide(self):
         card = ctk.CTkFrame(self.container, fg_color=CARD_BG, corner_radius=12, border_width=1, border_color=BORDER_COLOR)
-        card.grid_columnconfigure((0, 1), weight=1)
 
-        # Left Column: Image Pick
         left = ctk.CTkFrame(card, fg_color="transparent")
         left.pack(side="left", fill="both", expand=True, padx=24, pady=24)
 
@@ -127,7 +122,6 @@ class StegoGenSimpleApp(ctk.CTk):
             command=self._choose_cover
         ).pack(fill="x")
 
-        # Right Column: Secret Text & Password
         right = ctk.CTkFrame(card, fg_color="transparent")
         right.pack(side="right", fill="both", expand=True, padx=24, pady=24)
 
@@ -163,19 +157,16 @@ class StegoGenSimpleApp(ctk.CTk):
         return card
 
     # -------------------------------------------------------------
-    # TAB 2: READ MESSAGE (SIMPLE)
+    # TAB 2: READ MESSAGE
     # -------------------------------------------------------------
     def _view_read(self):
         card = ctk.CTkFrame(self.container, fg_color=CARD_BG, corner_radius=12, border_width=1, border_color=BORDER_COLOR)
-        card.pack(fill="both", expand=True)
-
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=32, pady=24)
 
         ctk.CTkLabel(inner, text="Read a Hidden Message", font=ctk.CTkFont(size=16, weight="bold"), text_color=TEXT_TITLE).pack(anchor="w")
         ctk.CTkLabel(inner, text="Select the protected image and reveal what's inside", font=ctk.CTkFont(size=12), text_color=TEXT_SUB).pack(anchor="w", pady=(0, 16))
 
-        # Top bar to choose file
         row = ctk.CTkFrame(inner, fg_color="transparent")
         row.pack(fill="x", pady=(0, 12))
 
@@ -193,7 +184,6 @@ class StegoGenSimpleApp(ctk.CTk):
         self.lbl_read_file = ctk.CTkLabel(row, text="No image selected", text_color=TEXT_SUB)
         self.lbl_read_file.pack(side="left")
 
-        # Password + Read button
         pass_row = ctk.CTkFrame(inner, fg_color="transparent")
         pass_row.pack(fill="x", pady=(0, 14))
 
@@ -220,49 +210,70 @@ class StegoGenSimpleApp(ctk.CTk):
         ).pack(side="right")
 
         ctk.CTkLabel(inner, text="Decoded Message:", font=ctk.CTkFont(size=12, weight="bold"), text_color=TEXT_SUB).pack(anchor="w", pady=(6, 4))
-
         self.txt_revealed = ctk.CTkTextbox(inner, fg_color=WELL_BG, corner_radius=10, border_width=1, border_color=BORDER_COLOR)
         self.txt_revealed.pack(fill="both", expand=True)
 
         return card
 
     # -------------------------------------------------------------
-    # TAB 3: QUALITY CHECK (FRIENDLY)
+    # TAB 3: QUALITY CHECK
     # -------------------------------------------------------------
     def _view_check(self):
         card = ctk.CTkFrame(self.container, fg_color=CARD_BG, corner_radius=12, border_width=1, border_color=BORDER_COLOR)
-        card.pack(fill="both", expand=True)
-
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=32, pady=24)
 
         ctk.CTkLabel(inner, text="Image Quality Verification", font=ctk.CTkFont(size=16, weight="bold"), text_color=TEXT_TITLE).pack(anchor="w")
-        ctk.CTkLabel(inner, text="Confirm that the secret data did not alter the image quality", font=ctk.CTkFont(size=12), text_color=TEXT_SUB).pack(anchor="w", pady=(0, 20))
+        ctk.CTkLabel(inner, text="Confirm that hiding data did not degrade image quality", font=ctk.CTkFont(size=12), text_color=TEXT_SUB).pack(anchor="w", pady=(0, 16))
 
-        # Big Visual Status Tile
+        # Explicit File Selectors
+        pickers = ctk.CTkFrame(inner, fg_color=WELL_BG, corner_radius=10, border_width=1, border_color=BORDER_COLOR)
+        pickers.pack(fill="x", pady=(0, 16))
+
+        row1 = ctk.CTkFrame(pickers, fg_color="transparent")
+        row1.pack(fill="x", padx=14, pady=(12, 6))
+        ctk.CTkButton(row1, text="Original Photo...", width=150, height=32, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_cover).pack(side="left", padx=(0, 12))
+        self.lbl_qual_cover = ctk.CTkLabel(row1, text="No original selected", text_color=TEXT_SUB)
+        self.lbl_qual_cover.pack(side="left")
+
+        row2 = ctk.CTkFrame(pickers, fg_color="transparent")
+        row2.pack(fill="x", padx=14, pady=(6, 12))
+        ctk.CTkButton(row2, text="Protected Photo...", width=150, height=32, corner_radius=8, fg_color="#323238", hover_color="#3e3e44", command=self._pick_qual_stego).pack(side="left", padx=(0, 12))
+        self.lbl_qual_stego = ctk.CTkLabel(row2, text="No protected photo selected", text_color=TEXT_SUB)
+        self.lbl_qual_stego.pack(side="left")
+
+        # Results Display Box
         self.status_box = ctk.CTkFrame(inner, fg_color=WELL_BG, corner_radius=12, border_width=1, border_color=BORDER_COLOR)
-        self.status_box.pack(fill="x", pady=(0, 20), ipady=16)
+        self.status_box.pack(fill="x", pady=(0, 16), ipady=12)
 
         self.lbl_verdict = ctk.CTkLabel(
             self.status_box,
             text="Ready to Compare",
-            font=ctk.CTkFont(size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color=TEXT_TITLE
         )
-        self.lbl_verdict.pack(pady=(12, 4))
+        self.lbl_verdict.pack(pady=(8, 4))
 
         self.lbl_verdict_sub = ctk.CTkLabel(
             self.status_box,
-            text="Make sure you have loaded an original photo and created a secret photo first.",
+            text="Select both files above and click the button below.",
             font=ctk.CTkFont(size=12),
             text_color=TEXT_SUB
         )
-        self.lbl_verdict_sub.pack(pady=(0, 12))
+        self.lbl_verdict_sub.pack(pady=(0, 6))
+
+        self.lbl_metrics_raw = ctk.CTkLabel(
+            self.status_box,
+            text="MSE: -- | PSNR: -- dB | SSIM: --",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=TEXT_SUB
+        )
+        self.lbl_metrics_raw.pack(pady=(0, 8))
 
         ctk.CTkButton(
             inner,
             text="Run Quality Test",
-            height=38,
+            height=40,
             corner_radius=8,
             fg_color=ACCENT_BLUE,
             hover_color=ACCENT_HOVER,
@@ -273,12 +284,14 @@ class StegoGenSimpleApp(ctk.CTk):
         return card
 
     # -------------------------------------------------------------
-    # SIMPLE EVENT HANDLERS
+    # EVENT HANDLERS
     # -------------------------------------------------------------
     def _choose_cover(self):
         path = filedialog.askopenfilename(filetypes=[("PNG Images", "*.png")])
         if path:
             self.cover_path = path
+            if hasattr(self, "lbl_qual_cover"):
+                self.lbl_qual_cover.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
             try:
                 img = Image.open(path)
                 img.thumbnail((260, 160))
@@ -292,15 +305,29 @@ class StegoGenSimpleApp(ctk.CTk):
         if path:
             self.stego_path = path
             self.lbl_read_file.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
+            if hasattr(self, "lbl_qual_stego"):
+                self.lbl_qual_stego.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
+
+    def _pick_qual_cover(self):
+        path = filedialog.askopenfilename(filetypes=[("PNG Images", "*.png")])
+        if path:
+            self.cover_path = path
+            self.lbl_qual_cover.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
+
+    def _pick_qual_stego(self):
+        path = filedialog.askopenfilename(filetypes=[("PNG Images", "*.png")])
+        if path:
+            self.stego_path = path
+            self.lbl_qual_stego.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
 
     def _do_hide(self):
         if not self.cover_path:
-            messagebox.showinfo("Select Photo", "Please pick a PNG photo first.")
+            messagebox.showinfo("Select Photo", "Please choose a PNG photo first.")
             return
 
         msg = self.txt_secret.get("1.0", "end-1c").strip()
         if not msg:
-            messagebox.showinfo("Enter Message", "Please type a message to hide.")
+            messagebox.showinfo("Enter Message", "Please type a secret message to hide.")
             return
 
         out_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG Images", "*.png")])
@@ -310,14 +337,16 @@ class StegoGenSimpleApp(ctk.CTk):
         pwd = self.ent_hide_pass.get().strip() or None
         try:
             encode_text(self.cover_path, msg, out_path, password=pwd)
-            self.stego_path = out_path  # Pre-load for quality test
-            messagebox.showinfo("Success", "Your secret photo has been created and saved!")
+            self.stego_path = out_path
+            if hasattr(self, "lbl_qual_stego"):
+                self.lbl_qual_stego.configure(text=os.path.basename(out_path), text_color=TEXT_TITLE)
+            messagebox.showinfo("Success", "Protected image created successfully!")
         except Exception as e:
-            messagebox.showerror("Notice", str(e))
+            messagebox.showerror("Error", str(e))
 
     def _do_read(self):
         if not self.stego_path:
-            messagebox.showinfo("Select Photo", "Please choose the image you want to read.")
+            messagebox.showinfo("Select Photo", "Please pick an image to read.")
             return
 
         pwd = self.ent_read_pass.get().strip() or None
@@ -326,22 +355,51 @@ class StegoGenSimpleApp(ctk.CTk):
             self.txt_revealed.delete("1.0", "end")
             self.txt_revealed.insert("1.0", text)
         except Exception:
-            messagebox.showerror("Unable to Read", "Could not find a valid message. Either the password is incorrect or this image contains no secret data.")
+            messagebox.showerror("Notice", "Could not extract message. Check your password or ensure this image contains stego data.")
 
     def _do_check(self):
-        if not self.cover_path or not self.stego_path:
-            messagebox.showinfo("Files Needed", "Please hide a message into an image first so we have both before and after images to compare.")
-            return
-        
-        report = compare_images(self.cover_path, self.stego_path)
-        
-        # User-friendly verdict
-        if report.psnr > 40:
-            self.lbl_verdict.configure(text="✓ Perfect Visual Quality", text_color="#30d158")
-            self.lbl_verdict_sub.configure(text=f"The secret message is 100% invisible to the human eye ({report.psnr:.1f} dB score).")
-        else:
-            self.lbl_verdict.configure(text="Quality Warning", text_color="#ff9f0a")
-            self.lbl_verdict_sub.configure(text="Minor changes were detected between the images.")
+        if not self.cover_path:
+            path = filedialog.askopenfilename(title="Select Original Image", filetypes=[("PNG Images", "*.png")])
+            if path:
+                self.cover_path = path
+                self.lbl_qual_cover.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
+            else:
+                return
+
+        if not self.stego_path:
+            path = filedialog.askopenfilename(title="Select Stego Image", filetypes=[("PNG Images", "*.png")])
+            if path:
+                self.stego_path = path
+                self.lbl_qual_stego.configure(text=os.path.basename(path), text_color=TEXT_TITLE)
+            else:
+                return
+
+        try:
+            report = compare_images(self.cover_path, self.stego_path)
+
+            mse = report.mse
+            psnr = report.psnr_db
+            ssim = report.ssim
+
+            mse_str = f"{mse:.4f}"
+            psnr_str = "∞ (Identical)" if (psnr == float("inf") or getattr(report, "is_identical", False)) else f"{psnr:.2f} dB"
+            ssim_str = f"{ssim:.5f}"
+
+            self.lbl_metrics_raw.configure(
+                text=f"MSE: {mse_str}   |   PSNR: {psnr_str}   |   SSIM: {ssim_str}",
+                text_color=TEXT_TITLE
+            )
+
+            if getattr(report, "is_identical", False) or psnr == float("inf") or psnr >= 40.0:
+                self.lbl_verdict.configure(text="✓ Perfect Visual Quality", text_color="#30d158")
+                self.lbl_verdict_sub.configure(text="The hidden data is 100% invisible to the human eye.")
+            else:
+                self.lbl_verdict.configure(text="⚠ Changes Detected", text_color="#ff9f0a")
+                self.lbl_verdict_sub.configure(text="Carrier image shows minor visual alterations.")
+
+        except Exception as e:
+            self.lbl_verdict.configure(text="Test Failed", text_color="#ff453a")
+            self.lbl_verdict_sub.configure(text=str(e))
 
 
 def launch_gui():
