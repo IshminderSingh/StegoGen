@@ -1,11 +1,10 @@
-"""Tests for basic LSB encoding and decoding."""
+﻿"""Tests for basic LSB encoding and decoding with structured payloads."""
 
 import pytest
-import numpy as np
 from PIL import Image
 
-from stegogen.core.encoder import encode_message_into_array, encode_text
-from stegogen.core.decoder import decode_message_from_array, decode_text
+from stegogen.core.encoder import encode_text
+from stegogen.core.decoder import decode_text
 
 
 @pytest.fixture
@@ -17,39 +16,37 @@ def blank_rgb_image(tmp_path):
     return img_path
 
 
-def test_roundtrip_ascii_message():
+def test_roundtrip_ascii_message(blank_rgb_image, tmp_path):
     """Verify standard text embeds and decodes identically."""
-    pixels = np.full((50, 50, 3), 100, dtype=np.uint8)
+    stego_path = tmp_path / "stego_ascii.png"
     secret = "Hello World!"
-    stego = encode_message_into_array(pixels, secret)
-    recovered = decode_message_from_array(stego)
-    assert recovered == secret
+    encode_text(blank_rgb_image, secret, stego_path)
+    assert decode_text(stego_path) == secret
 
 
-def test_roundtrip_unicode_message():
-    """Verify multi-byte Unicode strings (emojis, accents) work properly."""
-    pixels = np.full((60, 60, 3), 150, dtype=np.uint8)
-    secret = "StegoGen 🔒 — Unicode Test: مرحبا, ਗੁਪਤ, Café 🚀"
-    stego = encode_message_into_array(pixels, secret)
-    recovered = decode_message_from_array(stego)
-    assert recovered == secret
+def test_roundtrip_unicode_message(blank_rgb_image, tmp_path):
+    """Verify multi-byte Unicode strings work properly using standard unicode escapes."""
+    stego_path = tmp_path / "stego_unicode.png"
+    secret = "StegoGen \U0001F512 -- Unicode: \u0645\u0631\u062d\u0628\u0627, \u0a17\u0a41\u0a2a\u0a24, Caf\u00e9 \U0001F680"
+    encode_text(blank_rgb_image, secret, stego_path)
+    assert decode_text(stego_path) == secret
 
 
-def test_empty_message():
-    """Verify 0-length messages do not crash."""
-    pixels = np.zeros((20, 20, 3), dtype=np.uint8)
+def test_empty_message(blank_rgb_image, tmp_path):
+    """Verify 0-length messages embed and decode without crashing."""
+    stego_path = tmp_path / "stego_empty.png"
     secret = ""
-    stego = encode_message_into_array(pixels, secret)
-    recovered = decode_message_from_array(stego)
-    assert recovered == ""
+    encode_text(blank_rgb_image, secret, stego_path)
+    assert decode_text(stego_path) == ""
 
 
-def test_capacity_overflow():
+def test_capacity_overflow(tmp_path):
     """Verify an exception is raised when data exceeds pixel count."""
-    tiny_pixels = np.zeros((2, 2, 3), dtype=np.uint8)  # 2x2x3 = 12 bits capacity
-    message = "Too big for 12 bits"  # Needs 32 header bits + message bits
+    tiny_path = tmp_path / "tiny.png"
+    Image.new("RGB", (2, 2), color=(0, 0, 0)).save(tiny_path)  # 12 bits capacity
+    message = "Too big for 12 bits"
     with pytest.raises(ValueError, match="Message too large"):
-        encode_message_into_array(tiny_pixels, message)
+        encode_text(tiny_path, message, tmp_path / "out.png")
 
 
 def test_file_level_encoding_without_overwriting(blank_rgb_image, tmp_path):

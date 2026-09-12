@@ -1,14 +1,21 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-12
+### Added
+- Structured binary framing protocol (`STGO` magic header, versioning, bitflags, payload length, CRC32 checksum) in `core/payload.py`.
+- Payload verification and corruption rejection logic in `core/decoder.py`.
+- Checksum validation and carrier boundary checks.
+- Test suite covering framing roundtrip, magic mismatches, corruption detection, and unsupported versions in `tests/test_payload.py`.
+
 ## [0.2.0] - 2026-09-12
 ### Added
 - Core image utilities (`load_image_as_rgb`, `save_stego_image`) with channel normalization in `utils/image_utils.py`.
-- Spatial 1-bit LSB encoder with 32-bit length prefix and `uint8` bitmasking in `core/encoder.py`.
+- Spatial 1-bit LSB encoder with unsigned bitmasking in `core/encoder.py`.
 - LSB decoder with length-delimited byte recovery in `core/decoder.py`.
 - Unit tests covering ASCII, Unicode, zero-length strings, capacity overflow, and file-level immutability in `tests/test_basic_lsb.py`.
 
