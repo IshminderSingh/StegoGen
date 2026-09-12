@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-12
+### Added
+- Authenticated AES-256-GCM encryption engine with random salt and IV generation in `crypto/encryption.py`.
+- PBKDF2-HMAC-SHA256 key derivation with 100,000 iterations.
+- Integrated encryption/decryption hooks into `core/encoder.py` and `core/decoder.py`.
+- Cryptographic test suite covering salt uniqueness, tampering detection, wrong password failures, and end-to-end encrypted stego roundtrips in `tests/test_crypto.py`.
+
 ## [0.3.0] - 2026-09-12
 ### Added
 - Structured binary framing protocol (`STGO` magic header, versioning, bitflags, payload length, CRC32 checksum) in `core/payload.py`.

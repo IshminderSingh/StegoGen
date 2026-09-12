@@ -1,10 +1,11 @@
-"""Spatial Least Significant Bit (LSB) encoder."""
+﻿"""Spatial Least Significant Bit (LSB) encoder."""
 
 from pathlib import Path
 from PIL import Image
 import numpy as np
 
 from stegogen.core.payload import serialize_payload
+from stegogen.crypto.encryption import encrypt_bytes
 from stegogen.utils.image_utils import load_image_as_rgb, save_stego_image
 
 
@@ -18,18 +19,7 @@ def bytes_to_bits(data: bytes) -> list[int]:
 
 
 def encode_bytes_into_array(pixel_array: np.ndarray, payload_bytes: bytes) -> np.ndarray:
-    """Embed serialized payload bytes into an RGB numpy array using 1-bit LSB.
-
-    Args:
-        pixel_array: Flattenable uint8 numpy array of shape (H, W, 3).
-        payload_bytes: The complete structured payload (header + body).
-
-    Returns:
-        A modified uint8 numpy array containing the embedded payload.
-
-    Raises:
-        ValueError: If payload exceeds carrier capacity.
-    """
+    """Embed serialized payload bytes into an RGB numpy array using 1-bit LSB."""
     total_bits = bytes_to_bits(payload_bytes)
     flat_pixels = pixel_array.flatten()
     available_bits = flat_pixels.size
@@ -51,8 +41,9 @@ def encode_text(
     cover_image_path: str | Path,
     message: str,
     output_image_path: str | Path,
+    password: str | None = None,
 ) -> Path:
-    """Embed text using structured framing and save stego PNG."""
+    """Embed text (optionally encrypted) into a cover image and save stego PNG."""
     cover_path = Path(cover_image_path)
     output_path = Path(output_image_path)
 
@@ -60,7 +51,13 @@ def encode_text(
         raise ValueError("Cover image and output image paths must not be identical.")
 
     raw_data = message.encode("utf-8")
-    structured_payload = serialize_payload(raw_data, is_encrypted=False, is_file=False)
+    is_encrypted = False
+
+    if password:
+        raw_data = encrypt_bytes(raw_data, password)
+        is_encrypted = True
+
+    structured_payload = serialize_payload(raw_data, is_encrypted=is_encrypted, is_file=False)
 
     image = load_image_as_rgb(cover_path)
     pixel_array = np.array(image, dtype=np.uint8)
