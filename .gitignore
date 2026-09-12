@@ -1,38 +1,16 @@
-# Byte-compiled files
-__pycache__/
-*.py[cod]
-*$py.class
-
 # Environments
 .venv/
-venv/
-ENV/
 env/
+__pycache__/
+*.pyc
 
-# Secrets and environment configs
-.env
-.env.*
-*.key
-*.pem
-
-# IDE & Editor artifacts
-.vscode/
-.idea/
-*.swp
-
-# Testing & Coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Build & distribution
-dist/
+# Build artifacts
 build/
-*.egg-info/
+dist/
+*.spec
 
-# Project generated artifacts (keep .gitkeep)
-output/*
-!output/.gitkeep
-examples/*
-!examples/.gitkeep
-*.log
+# Test / temporary files
+verify_app.py
+*.tmp
+*.egg-info/
+output/
